@@ -381,14 +381,16 @@ typedef enum {
     AUDIO_DEVICE_IN_AUX_DIGITAL           = 0x200000,
     AUDIO_DEVICE_IN_VOICE_CALL            = 0x400000,
     AUDIO_DEVICE_IN_BACK_MIC              = 0x800000,
-#ifdef OMAP_ENHANCEMENT
-    AUDIO_DEVICE_IN_FM_RADIO_RX           = 0x2000001,
-#endif
 #ifdef USE_MOTOROLA_CODE
     // BEGIN Motorola e11237 IKMMINTG-261 USB audio support
     AUDIO_DEVICE_IN_EXT_USB_MIC           = 0x1000000,
     AUDIO_DEVICE_IN_DOCK_USB_MIC          = 0x2000000,
     // END IKMMINTG-261
+#endif
+#ifdef OMAP_ENHANCEMENT
+    AUDIO_DEVICE_IN_USB_HEADSET           = 0x1000001,
+    AUDIO_DEVICE_IN_FM_RADIO_RX           = 0x2000001,
+    AUDIO_DEVICE_IN_WFD                   = 0x4000000,
 #endif
 #endif
     AUDIO_DEVICE_IN_DEFAULT               = 0x80000000,
@@ -401,14 +403,16 @@ typedef enum {
                                AUDIO_DEVICE_IN_AUX_DIGITAL |
                                AUDIO_DEVICE_IN_VOICE_CALL |
                                AUDIO_DEVICE_IN_BACK_MIC |
-#ifdef OMAP_ENHANCEMENT
-                               AUDIO_DEVICE_IN_FM_RADIO_RX |
-#endif
 #ifdef USE_MOTOROLA_CODE
                                // BEGIN Motorola e11237 IKMMINTG-261
                                AUDIO_DEVICE_IN_EXT_USB_MIC |
                                AUDIO_DEVICE_IN_DOCK_USB_MIC |
                                // END IKMMINTG-261
+#endif
+#ifdef OMAP_ENHANCEMENT
+                               AUDIO_DEVICE_IN_FM_RADIO_RX |
+                               AUDIO_DEVICE_IN_WFD |
+                               AUDIO_DEVICE_IN_USB_HEADSET |
 #endif
 #if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
                                AUDIO_DEVICE_IN_ANC_HEADSET |
