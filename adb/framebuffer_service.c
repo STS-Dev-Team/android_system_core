@@ -23,6 +23,12 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#ifdef OMAP_ENHANCEMENT
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#endif	/* OMAP_ENHANCEMENT */
+
 #include "fdevent.h"
 #include "adb.h"
 

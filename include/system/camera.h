@@ -95,6 +95,10 @@ enum {
     // Notify on autofocus start and stop. This is useful in continuous
     // autofocus - FOCUS_MODE_CONTINUOUS_VIDEO and FOCUS_MODE_CONTINUOUS_PICTURE.
     CAMERA_MSG_FOCUS_MOVE = 0x0800,       // notifyCallback
+#ifdef OMAP_ENHANCEMENT_BURST_CAPTURE
+    CAMERA_MSG_COMPRESSED_BURST_IMAGE = 0x1000, // dataCallback
+    CAMERA_MSG_RAW_BURST = 0x2000,        // dataCallback
+#endif
     CAMERA_MSG_ALL_MSGS = 0xFFFF
 };
 
@@ -170,6 +174,30 @@ enum {
      * can silently finish itself or show a dialog.
      */
     CAMERA_CMD_PING = 9,
+
+#ifdef OMAP_ENHANCEMENT_VTC
+    /**
+     * Camera Preview deinitialization.
+     * This is a TI enhancement for supporting tunneling during VTC.
+     * This command causes the camera component to move from loaded to idle state.
+     */
+    CAMERA_CMD_PREVIEW_INITIALIZATION = 256,
+
+    /**
+     * Camera Preview initialization.
+     * This is a TI enhancement for supporting tunneling during VTC.
+     * This command causes the camera component to move from executing to idle state.
+     */
+    CAMERA_CMD_PREVIEW_DEINITIALIZATION = 257,
+#endif
+
+#ifdef OMAP_ENHANCEMENT
+    /**
+     * Extend camera_device_ops_t with extra callbacks.
+     * The arg1 and arg2 arguments should form pointer to camera_device_extended_ops_t.
+     */
+    CAMERA_CMD_SETUP_EXTENDED_OPERATIONS = 1024,
+#endif
 };
 
 /** camera fatal errors */
@@ -266,6 +294,18 @@ typedef struct camera_frame_metadata {
      * An array of the detected faces. The length is number_of_faces.
      */
     camera_face_t *faces;
+
+#ifdef OMAP_ENHANCEMENT_CPCAM
+    /**
+     * Exposure time in microseconds
+     */
+    int32_t exposure_time;
+
+    /**
+     * Analog gain (EV * 100)
+     */
+    int32_t analog_gain;
+#endif
 } camera_frame_metadata_t;
 
 __END_DECLS
