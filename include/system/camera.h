@@ -89,8 +89,6 @@ enum {
 #ifdef OMAP_ENHANCEMENT
     CAMERA_MSG_COMPRESSED_BURST_IMAGE = 0x0800, //dataCallback
     CAMERA_MSG_RAW_BURST = 0x1000,        // dataCallback
-#else
-    CAMERA_MSG_STATS_DATA = 0x1000, // dataCallback
 #endif
 #ifdef USE_MOTOROLA_CODE
     CAMERA_MSG_ENV_DETECT = 0x8001,       // MOT IKHSS6-8697 w4779c - Motorola-specific camera interface
