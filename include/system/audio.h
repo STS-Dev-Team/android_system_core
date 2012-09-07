@@ -50,6 +50,9 @@ typedef enum {
 #ifdef QCOM_HARDWARE
     AUDIO_STREAM_FM               = 10,
 #endif
+#ifdef OMAP_ENHANCEMENT
+    AUDIO_STREAM_EXCLUSIVE        = 10,
+#endif
     AUDIO_STREAM_CNT,
     AUDIO_STREAM_MAX              = AUDIO_STREAM_CNT - 1,
 } audio_stream_type_t;
@@ -67,7 +70,8 @@ typedef enum {
     AUDIO_SOURCE_VOICE_RECOGNITION   = 6,
     AUDIO_SOURCE_VOICE_COMMUNICATION = 7,
 #ifdef OMAP_ENHANCEMENT
-    AUDIO_SOURCE_FM_RADIO_RX         = 8,
+    AUDIO_SOURCE_WFD                 = 8,
+    AUDIO_SOURCE_FM_RADIO_RX         = 9,
 #endif
 #ifdef QCOM_HARDWARE
     AUDIO_SOURCE_FM_RX               = 8,
@@ -301,16 +305,17 @@ typedef enum {
     AUDIO_DEVICE_OUT_AUX_DIGITAL               = 0x400,
     AUDIO_DEVICE_OUT_ANLG_DOCK_HEADSET         = 0x800,
     AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET         = 0x1000,
-#ifdef OMAP_ENHANCEMENT
-    AUDIO_DEVICE_OUT_FM_RADIO_TX               = 0x6000,
-#endif
 #ifdef USE_MOTOROLA_CODE
     // BEGIN Motorola e11237 IKMMINTG-517 USB audio support from GB
     AUDIO_DEVICE_OUT_EXT_USB_SPEAKER           = 0x2000,
     AUDIO_DEVICE_OUT_DOCK_USB_SPEAKER          = 0x4000,
     // END IKMMINTG-517
 #endif
-    AUDIO_DEVICE_OUT_FM                        = 0x2001,
+#ifdef OMAP_ENHANCEMENT
+    AUDIO_DEVICE_OUT_FM_RADIO_TX               = 0x8000,
+    AUDIO_DEVICE_OUT_WFD                       = 0x10000,
+#endif
+    AUDIO_DEVICE_OUT_FM                        = 0x20000,
 #if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
     AUDIO_DEVICE_OUT_ANC_HEADSET               = 0x4000,
     AUDIO_DEVICE_OUT_ANC_HEADPHONE             = 0x8000,
@@ -319,7 +324,7 @@ typedef enum {
     AUDIO_DEVICE_OUT_PROXY                     = 0x40000,
     AUDIO_DEVICE_OUT_DEFAULT                   = 0x80000,
 #else
-    AUDIO_DEVICE_OUT_DEFAULT                   = 0x8000,
+    AUDIO_DEVICE_OUT_DEFAULT                   = 0x40000,
 #endif
     AUDIO_DEVICE_OUT_ALL      = (AUDIO_DEVICE_OUT_EARPIECE |
                                  AUDIO_DEVICE_OUT_SPEAKER |
@@ -336,6 +341,7 @@ typedef enum {
                                  AUDIO_DEVICE_OUT_DGTL_DOCK_HEADSET |
 #ifdef OMAP_ENHANCEMENT
                                  AUDIO_DEVICE_OUT_FM_RADIO_TX |
+                                 AUDIO_DEVICE_OUT_WFD |
 #endif
 #ifdef USE_MOTOROLA_CODE
                                  // BEGIN Motorola e11237 IKMMINTG-517
@@ -381,14 +387,16 @@ typedef enum {
     AUDIO_DEVICE_IN_AUX_DIGITAL           = 0x200000,
     AUDIO_DEVICE_IN_VOICE_CALL            = 0x400000,
     AUDIO_DEVICE_IN_BACK_MIC              = 0x800000,
-#ifdef OMAP_ENHANCEMENT
-    AUDIO_DEVICE_IN_FM_RADIO_RX           = 0x2000001,
-#endif
 #ifdef USE_MOTOROLA_CODE
     // BEGIN Motorola e11237 IKMMINTG-261 USB audio support
     AUDIO_DEVICE_IN_EXT_USB_MIC           = 0x1000000,
     AUDIO_DEVICE_IN_DOCK_USB_MIC          = 0x2000000,
     // END IKMMINTG-261
+#endif
+#ifdef OMAP_ENHANCEMENT
+    AUDIO_DEVICE_IN_USB_HEADSET           = 0x4000000,
+    AUDIO_DEVICE_IN_FM_RADIO_RX           = 0x8000000,
+    AUDIO_DEVICE_IN_WFD                   = 0x10000000,
 #endif
 #endif
     AUDIO_DEVICE_IN_DEFAULT               = 0x80000000,
@@ -401,14 +409,16 @@ typedef enum {
                                AUDIO_DEVICE_IN_AUX_DIGITAL |
                                AUDIO_DEVICE_IN_VOICE_CALL |
                                AUDIO_DEVICE_IN_BACK_MIC |
-#ifdef OMAP_ENHANCEMENT
-                               AUDIO_DEVICE_IN_FM_RADIO_RX |
-#endif
 #ifdef USE_MOTOROLA_CODE
                                // BEGIN Motorola e11237 IKMMINTG-261
                                AUDIO_DEVICE_IN_EXT_USB_MIC |
                                AUDIO_DEVICE_IN_DOCK_USB_MIC |
                                // END IKMMINTG-261
+#endif
+#ifdef OMAP_ENHANCEMENT
+                               AUDIO_DEVICE_IN_FM_RADIO_RX |
+                               AUDIO_DEVICE_IN_WFD |
+                               AUDIO_DEVICE_IN_USB_HEADSET |
 #endif
 #if defined(QCOM_HARDWARE) && !defined(USES_AUDIO_LEGACY)
                                AUDIO_DEVICE_IN_ANC_HEADSET |
