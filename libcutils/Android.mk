@@ -50,7 +50,7 @@ commonSources := \
 	threads.c \
 	sched_policy.c \
 	iosched_policy.c \
-	str_parms.c
+	str_parms.c \
 
 commonHostSources := \
         ashmem-host.c
@@ -75,8 +75,14 @@ ifeq ($(WINDOWS_HOST_ONLY),1)
 else
     commonSources += \
         abort_socket.c \
+        fs.c \
         selector.c \
+        tztime.c \
+        multiuser.c \
         zygote.c
+
+    commonHostSources += \
+        tzstrftime.c
 endif
 
 

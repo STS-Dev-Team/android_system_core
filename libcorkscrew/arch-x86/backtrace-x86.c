@@ -31,10 +31,19 @@
 #include <limits.h>
 #include <errno.h>
 #include <sys/ptrace.h>
-#include <sys/exec_elf.h>
 #include <cutils/log.h>
 
-#if !defined(__BIONIC_HAVE_UCONTEXT_T)
+#if defined(__BIONIC__)
+
+#if defined(__BIONIC_HAVE_UCONTEXT_T)
+
+// Bionic offers the Linux kernel headers.
+#include <asm/sigcontext.h>
+#include <asm/ucontext.h>
+typedef struct ucontext ucontext_t;
+
+#else /* __BIONIC_HAVE_UCONTEXT_T */
+
 /* Old versions of the Android <signal.h> didn't define ucontext_t. */
 
 typedef struct {
@@ -60,7 +69,16 @@ typedef struct ucontext {
     mcontext_t uc_mcontext;
     uint32_t uc_sigmask;
 } ucontext_t;
-#endif /* !__BIONIC_HAVE_UCONTEXT_T */
+
+#endif /* __BIONIC_HAVE_UCONTEXT_T */
+
+#else /* __BIONIC__ */
+
+// glibc has its own renaming of the Linux kernel's structures.
+#define __USE_GNU // For REG_EBP, REG_ESP, and REG_EIP.
+#include <ucontext.h>
+
+#endif /* __ BIONIC__ */
 
 /* Unwind state. */
 typedef struct {
@@ -111,8 +129,8 @@ ssize_t unwind_backtrace_signal_arch(siginfo_t* siginfo __attribute__((unused)),
 
     unwind_state_t state;
     state.ebp = uc->uc_mcontext.gregs[REG_EBP];
-    state.eip = uc->uc_mcontext.gregs[REG_EIP];
     state.esp = uc->uc_mcontext.gregs[REG_ESP];
+    state.eip = uc->uc_mcontext.gregs[REG_EIP];
 
     memory_t memory;
     init_memory(&memory, map_info_list);

@@ -155,7 +155,7 @@ typedef enum {
                                         AUDIO_FORMAT_PCM_SUB_8_24_BIT),
 } audio_format_t;
 
-typedef enum {
+enum {
     /* output channels */
     AUDIO_CHANNEL_OUT_FRONT_LEFT            = 0x1,
     AUDIO_CHANNEL_OUT_FRONT_RIGHT           = 0x2,
@@ -278,7 +278,11 @@ typedef enum {
     AUDIO_IN_ACOUSTICS_TX_DISABLE    = 0,
 } audio_in_acoustics_t;
 
-typedef enum {
+enum {
+    AUDIO_DEVICE_NONE                          = 0x0,
+    /* reserved bits */
+    AUDIO_DEVICE_BIT_IN                        = 0x80000000,
+    AUDIO_DEVICE_BIT_DEFAULT                   = 0x40000000,
     /* output devices */
     AUDIO_DEVICE_OUT_EARPIECE                  = 0x1,
     AUDIO_DEVICE_OUT_SPEAKER                   = 0x2,
@@ -304,7 +308,8 @@ typedef enum {
 #ifdef OMAP_ENHANCEMENT
     AUDIO_DEVICE_OUT_FM_RADIO_TX               = 0x20000000,
 #endif
-    AUDIO_DEVICE_OUT_DEFAULT                   = 0x8000,
+    AUDIO_DEVICE_OUT_REMOTE_SUBMIX             = 0x8000,
+    AUDIO_DEVICE_OUT_DEFAULT                   = AUDIO_DEVICE_BIT_DEFAULT,
     AUDIO_DEVICE_OUT_ALL      = (AUDIO_DEVICE_OUT_EARPIECE |
                                  AUDIO_DEVICE_OUT_SPEAKER |
                                  AUDIO_DEVICE_OUT_WIRED_HEADSET |
@@ -340,14 +345,6 @@ typedef enum {
                                  AUDIO_DEVICE_OUT_USB_DEVICE),
 
     /* input devices */
-    AUDIO_DEVICE_IN_COMMUNICATION         = 0x10000,
-    AUDIO_DEVICE_IN_AMBIENT               = 0x20000,
-    AUDIO_DEVICE_IN_BUILTIN_MIC           = 0x40000,
-    AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET = 0x80000,
-    AUDIO_DEVICE_IN_WIRED_HEADSET         = 0x100000,
-    AUDIO_DEVICE_IN_AUX_DIGITAL           = 0x200000,
-    AUDIO_DEVICE_IN_VOICE_CALL            = 0x400000,
-    AUDIO_DEVICE_IN_BACK_MIC              = 0x800000,
 #ifdef USE_MOTOROLA_CODE
     // BEGIN Motorola e11237 IKMMINTG-261 USB audio support
     AUDIO_DEVICE_IN_EXT_USB_MIC           = 0x1000000,
@@ -358,7 +355,20 @@ typedef enum {
     AUDIO_DEVICE_IN_USB_HEADSET           = 0x10000000,
     AUDIO_DEVICE_IN_FM_RADIO_RX           = 0x20000000,
 #endif
-    AUDIO_DEVICE_IN_DEFAULT               = 0x80000000,
+    AUDIO_DEVICE_IN_COMMUNICATION         = AUDIO_DEVICE_BIT_IN | 0x1,
+    AUDIO_DEVICE_IN_AMBIENT               = AUDIO_DEVICE_BIT_IN | 0x2,
+    AUDIO_DEVICE_IN_BUILTIN_MIC           = AUDIO_DEVICE_BIT_IN | 0x4,
+    AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET = AUDIO_DEVICE_BIT_IN | 0x8,
+    AUDIO_DEVICE_IN_WIRED_HEADSET         = AUDIO_DEVICE_BIT_IN | 0x10,
+    AUDIO_DEVICE_IN_AUX_DIGITAL           = AUDIO_DEVICE_BIT_IN | 0x20,
+    AUDIO_DEVICE_IN_VOICE_CALL            = AUDIO_DEVICE_BIT_IN | 0x40,
+    AUDIO_DEVICE_IN_BACK_MIC              = AUDIO_DEVICE_BIT_IN | 0x80,
+    AUDIO_DEVICE_IN_REMOTE_SUBMIX         = AUDIO_DEVICE_BIT_IN | 0x100,
+    AUDIO_DEVICE_IN_ANLG_DOCK_HEADSET     = AUDIO_DEVICE_BIT_IN | 0x200,
+    AUDIO_DEVICE_IN_DGTL_DOCK_HEADSET     = AUDIO_DEVICE_BIT_IN | 0x400,
+    AUDIO_DEVICE_IN_USB_ACCESSORY         = AUDIO_DEVICE_BIT_IN | 0x800,
+    AUDIO_DEVICE_IN_USB_DEVICE            = AUDIO_DEVICE_BIT_IN | 0x1000,
+    AUDIO_DEVICE_IN_DEFAULT               = AUDIO_DEVICE_BIT_IN | AUDIO_DEVICE_BIT_DEFAULT,
 
     AUDIO_DEVICE_IN_ALL     = (AUDIO_DEVICE_IN_COMMUNICATION |
                                AUDIO_DEVICE_IN_AMBIENT |
@@ -380,7 +390,9 @@ typedef enum {
 #endif
                                AUDIO_DEVICE_IN_DEFAULT),
     AUDIO_DEVICE_IN_ALL_SCO = AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET,
-} audio_devices_t;
+};
+
+typedef uint32_t audio_devices_t;
 
 /* the audio output flags serve two purposes:
  * - when an AudioTrack is created they indicate a "wish" to be connected to an
@@ -407,7 +419,8 @@ typedef enum {
 
 static inline bool audio_is_output_device(audio_devices_t device)
 {
-    if ((popcount(device) == 1) && ((device & ~AUDIO_DEVICE_OUT_ALL) == 0))
+    if (((device & AUDIO_DEVICE_BIT_IN) == 0) &&
+            (popcount(device) == 1) && ((device & ~AUDIO_DEVICE_OUT_ALL) == 0))
         return true;
     else
         return false;
@@ -415,11 +428,19 @@ static inline bool audio_is_output_device(audio_devices_t device)
 
 static inline bool audio_is_input_device(audio_devices_t device)
 {
-    if ((popcount(device) == 1) && ((device & ~AUDIO_DEVICE_IN_ALL) == 0))
-        return true;
-    else
-        return false;
+    if ((device & AUDIO_DEVICE_BIT_IN) != 0) {
+        device &= ~AUDIO_DEVICE_BIT_IN;
+        if ((popcount(device) == 1) && ((device & ~AUDIO_DEVICE_IN_ALL) == 0))
+            return true;
+    }
+    return false;
 }
+
+static inline bool audio_is_output_devices(audio_devices_t device)
+{
+    return (device & AUDIO_DEVICE_BIT_IN) == 0;
+}
+
 
 static inline bool audio_is_a2dp_device(audio_devices_t device)
 {
@@ -431,6 +452,7 @@ static inline bool audio_is_a2dp_device(audio_devices_t device)
 
 static inline bool audio_is_bluetooth_sco_device(audio_devices_t device)
 {
+    device &= ~AUDIO_DEVICE_BIT_IN;
     if ((popcount(device) == 1) && (device & (AUDIO_DEVICE_OUT_ALL_SCO |
                    AUDIO_DEVICE_IN_BLUETOOTH_SCO_HEADSET)))
         return true;
@@ -441,6 +463,14 @@ static inline bool audio_is_bluetooth_sco_device(audio_devices_t device)
 static inline bool audio_is_usb_device(audio_devices_t device)
 {
     if ((popcount(device) == 1) && (device & AUDIO_DEVICE_OUT_ALL_USB))
+        return true;
+    else
+        return false;
+}
+
+static inline bool audio_is_remote_submix_device(audio_devices_t device)
+{
+    if ((popcount(device) == 1) && (device & AUDIO_DEVICE_OUT_REMOTE_SUBMIX))
         return true;
     else
         return false;

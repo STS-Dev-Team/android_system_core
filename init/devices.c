@@ -53,6 +53,7 @@
 #define SYSFS_PREFIX    "/sys"
 #define FIRMWARE_DIR1   "/etc/firmware"
 #define FIRMWARE_DIR2   "/vendor/firmware"
+#define FIRMWARE_DIR3   "/firmware/image"
 
 #ifdef USE_MOTOROLA_CODE
 #define MAX_MMC_PARTITIONS 32
@@ -699,7 +700,7 @@ static void handle_generic_device_event(struct uevent *uevent)
 
 static void handle_device_event(struct uevent *uevent)
 {
-    if (!strcmp(uevent->action,"add"))
+    if (!strcmp(uevent->action,"add") || !strcmp(uevent->action, "change"))
         fixup_sys_perms(uevent->path);
 
     if (!strncmp(uevent->subsystem, "block", 5)) {
@@ -764,7 +765,7 @@ static int is_booting(void)
 
 static void process_firmware_event(struct uevent *uevent)
 {
-    char *root, *loading, *data, *file1 = NULL, *file2 = NULL;
+    char *root, *loading, *data, *file1 = NULL, *file2 = NULL, *file3 = NULL;
     int l, loading_fd, data_fd, fw_fd;
     int booting = is_booting();
 
@@ -809,6 +810,10 @@ static void process_firmware_event(struct uevent *uevent)
     }
 #endif
 
+    l = asprintf(&file3, FIRMWARE_DIR3"/%s", uevent->firmware);
+    if (l == -1)
+        goto data_free_out;
+
     loading_fd = open(loading, O_WRONLY);
     if(loading_fd < 0)
         goto file_free_out;
@@ -833,17 +838,20 @@ try_loading_again:
 #endif
         fw_fd = open(file2, O_RDONLY);
         if (fw_fd < 0) {
-            if (booting) {
-                    /* If we're not fully booted, we may be missing
-                     * filesystems needed for firmware, wait and retry.
-                     */
-                usleep(100000);
-                booting = is_booting();
-                goto try_loading_again;
+            fw_fd = open(file3, O_RDONLY);
+            if (fw_fd < 0) {
+                if (booting) {
+                        /* If we're not fully booted, we may be missing
+                         * filesystems needed for firmware, wait and retry.
+                         */
+                    usleep(100000);
+                    booting = is_booting();
+                    goto try_loading_again;
+                }
+                INFO("firmware: could not open '%s' %d\n", uevent->firmware, errno);
+                write(loading_fd, "-1", 2);
+                goto data_close_out;
             }
-            INFO("firmware: could not open '%s' %d\n", uevent->firmware, errno);
-            write(loading_fd, "-1", 2);
-            goto data_close_out;
         }
     }
 

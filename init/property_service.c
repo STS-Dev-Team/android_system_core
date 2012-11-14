@@ -94,6 +94,7 @@ struct {
     { "sys.",             AID_SYSTEM,   0 },
     { "service.",         AID_SYSTEM,   0 },
     { "wlan.",            AID_SYSTEM,   0 },
+    { "bluetooth.",       AID_BLUETOOTH,   0 },
     { "dhcp.",            AID_SYSTEM,   0 },
     { "dhcp.",            AID_DHCP,     0 },
     { "debug.",           AID_SYSTEM,   0 },
@@ -104,6 +105,7 @@ struct {
     { "persist.sys.",     AID_SYSTEM,   0 },
     { "persist.service.", AID_SYSTEM,   0 },
     { "persist.security.", AID_SYSTEM,   0 },
+    { "persist.service.bdroid.", AID_BLUETOOTH,   0 },
     { "selinux."         , AID_SYSTEM,   0 },
 #ifdef USE_MOTOROLA_CODE
     { "log.",             AID_SHELL,    AID_LOG },
@@ -646,6 +648,16 @@ int properties_inited(void)
     return property_area_inited;
 }
 
+static void load_override_properties() {
+#ifdef ALLOW_LOCAL_PROP_OVERRIDE
+    const char *debuggable = property_get("ro.debuggable");
+    if (debuggable && (strcmp(debuggable, "1") == 0)) {
+        load_properties_from_file(PROP_PATH_LOCAL_OVERRIDE);
+    }
+#endif /* ALLOW_LOCAL_PROP_OVERRIDE */
+}
+
+
 /* When booting an encrypted system, /data is not mounted when the
  * property service is started, so any properties stored there are
  * not loaded.  Vold triggers init to load these properties once it
@@ -653,9 +665,7 @@ int properties_inited(void)
  */
 void load_persist_props(void)
 {
-#ifdef ALLOW_LOCAL_PROP_OVERRIDE
-    load_properties_from_file(PROP_PATH_LOCAL_OVERRIDE);
-#endif /* ALLOW_LOCAL_PROP_OVERRIDE */
+    load_override_properties();
     /* Read persistent properties after all default values have been loaded. */
     load_persistent_properties();
 }
@@ -666,9 +676,7 @@ void start_property_service(void)
 
     load_properties_from_file(PROP_PATH_SYSTEM_BUILD);
     load_properties_from_file(PROP_PATH_SYSTEM_DEFAULT);
-#ifdef ALLOW_LOCAL_PROP_OVERRIDE
-    load_properties_from_file(PROP_PATH_LOCAL_OVERRIDE);
-#endif /* ALLOW_LOCAL_PROP_OVERRIDE */
+    load_override_properties();
     /* Read persistent properties after all default values have been loaded. */
     load_persistent_properties();
 
