@@ -204,6 +204,17 @@ static struct fs_path_config android_dirs[] = {
     { 00770, AID_DHCP,   AID_DHCP,   "data/misc/dhcp" },
     { 00775, AID_MEDIA_RW, AID_MEDIA_RW, "data/media" },
     { 00775, AID_MEDIA_RW, AID_MEDIA_RW, "data/media/Music" },
+#ifdef USE_MOTOROLA_USERS
+    { 00777, AID_SYSTEM, AID_SYSTEM, "data/anr" },
+    { 00771, AID_MOT_TCMD,  AID_SHELL,  "data/local/12m/batch" },
+    { 00771, AID_MOT_TCMD,  AID_SHELL,  "data/local/12m" },
+    { 00771, AID_MOT_TCMD,  AID_SHELL,  "data/local/tmp" },
+    { 00775, AID_SYSTEM, AID_SYSTEM, "data/tombstones" },
+    { 00777, AID_SYSTEM, AID_SYSTEM, "data/touchpad" },
+    { 00770, AID_RADIO,  AID_LOG,    "data/logger" },
+    { 00755, AID_ROOT,   AID_ROOT,   "system/usr/bin" },
+    { 00775, AID_ROOT,   AID_ROOT,   "system/etc/touchpad" },
+#endif
     { 00771, AID_SYSTEM, AID_SYSTEM, "data" },
     { 00750, AID_ROOT,   AID_SHELL,  "sbin" },
     { 00755, AID_ROOT,   AID_ROOT,   "system/addon.d" },
@@ -233,6 +244,17 @@ static struct fs_path_config android_files[] = {
     { 00555, AID_ROOT,      AID_ROOT,      "system/etc/ppp/*" },
     { 00555, AID_ROOT,      AID_ROOT,      "system/etc/rc.*" },
     { 00755, AID_ROOT,      AID_ROOT,      "system/addon.d/*" },
+#ifdef USE_MOTOROLA_USERS
+    { 00755, AID_ROOT,      AID_SHELL,     "system/etc/12m_files_copy.sh" },
+    { 00544, AID_ROOT,      AID_SHELL,     "system/etc/install-recovery.sh" },
+    { 00660, AID_RADIO,     AID_RADIO,     "data/logger/bplogd.clog" },
+    { 00660, AID_RADIO,     AID_RADIO,     "data/logger/bplogd.conf" },
+    { 04770, AID_ROOT,      AID_RADIO,     "system/bin/pppd-moto_ril" },
+    { 00750, AID_ROOT,      AID_RADIO,     "system/bin/mfa" }, /* STE */
+    { 00755, AID_ROOT,      AID_SHELL,     "system/usr/bin/*" },
+    { 00555, AID_ROOT,      AID_SHELL,     "system/bin/fwupgrade" },
+    { 00555, AID_ROOT,      AID_ROOT,      "system/usr/bin/brcm_guci_drv" },
+#endif
     { 00644, AID_SYSTEM,    AID_SYSTEM,    "data/app/*" },
     { 00644, AID_MEDIA_RW,  AID_MEDIA_RW,  "data/media/*" },
     { 00644, AID_SYSTEM,    AID_SYSTEM,    "data/app-private/*" },

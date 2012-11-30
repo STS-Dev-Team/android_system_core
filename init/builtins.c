@@ -258,6 +258,7 @@ int do_domainname(int nargs, char **args)
     return write_file("/proc/sys/kernel/domainname", args[1]);
 }
 
+/*exec <path> <arg1> <arg2> ... */
 #define MAX_PARAMETERS 64
 int do_exec(int nargs, char **args)
 {
@@ -271,7 +272,6 @@ int do_exec(int nargs, char **args)
     {
         return -1;
     }
-
     for(i=0, j=1; i<(nargs-1) ;i++,j++)
     {
         if ((args[j])
@@ -298,7 +298,13 @@ int do_exec(int nargs, char **args)
     pid = fork();
     if (!pid)
     {
-        execv(par[0],par);
+        char tmp[32];
+        int fd, sz;
+        get_property_workspace(&fd, &sz);
+        sprintf(tmp, "%d,%d", dup(fd), sz);
+        setenv("ANDROID_PROPERTY_WORKSPACE", tmp, 1);
+        execve(par[0],par,environ);
+        exit(0);
     }
     else
     {
@@ -539,7 +545,7 @@ int do_mount(int nargs, char **args)
         if (wait)
             wait_for_file(source, COMMAND_RETRY_TIMEOUT);
         if (mount(source, target, system, flags, options) < 0) {
-            return -1;
+            return -2;
         }
 
     }

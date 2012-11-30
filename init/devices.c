@@ -43,6 +43,10 @@
 
 #include <cutils/list.h>
 #include <cutils/uevent.h>
+#ifdef USE_MOTOROLA_CODE
+#include <cutils/partition_utils.h>
+#include <sys/poll.h>
+#endif
 
 #include "devices.h"
 #include "util.h"
@@ -52,6 +56,14 @@
 #define FIRMWARE_DIR1   "/etc/firmware"
 #define FIRMWARE_DIR2   "/vendor/firmware"
 #define FIRMWARE_DIR3   "/firmware/image"
+
+#ifdef USE_MOTOROLA_CODE
+#define MAX_MMC_PARTITIONS 32
+#define NAME_LEN 32
+#define ALIAS_LEN 32
+#define PATH_LEN 64
+#define BUF_SIZE MAX_MMC_PARTITIONS*128
+#endif
 
 #ifdef HAVE_SELINUX
 extern struct selabel_handle *sehandle;
@@ -66,10 +78,17 @@ struct uevent {
     const char *firmware;
     const char *partition_name;
     const char *device_name;
+    const char *country;
+    const char *modalias;
     int partition_num;
     int major;
     int minor;
 };
+
+#ifdef USE_MOTOROLA_CODE
+static void add_mmc_alias(char *dev_name, char *dev_alias);
+static void get_partition_alias_name(char *devname, char *alias);
+#endif
 
 struct perms_ {
     char *name;
@@ -94,6 +113,10 @@ struct platform_node {
 static list_declare(sys_perms);
 static list_declare(dev_perms);
 static list_declare(platform_names);
+#ifdef USE_MOTOROLA_CODE
+static void add_mmc_alias(char *dev_name, char *dev_alias);
+static void get_partition_alias_name(char *devname, char *alias);
+#endif
 
 int add_dev_perms(const char *name, const char *attr,
                   mode_t perm, unsigned int uid, unsigned int gid,
@@ -308,6 +331,8 @@ static void parse_event(const char *msg, struct uevent *uevent)
     uevent->path = "";
     uevent->subsystem = "";
     uevent->firmware = "";
+    uevent->country = "";
+    uevent->modalias = "";
     uevent->major = -1;
     uevent->minor = -1;
     uevent->partition_name = NULL;
@@ -343,6 +368,12 @@ static void parse_event(const char *msg, struct uevent *uevent)
         } else if(!strncmp(msg, "DEVNAME=", 8)) {
             msg += 8;
             uevent->device_name = msg;
+        } else if (!strncmp(msg, "COUNTRY=", 8)) {
+            msg += 8;
+            uevent->country = msg;
+        } else if (!strncmp(msg, "MODALIAS=", 9)) {
+            msg += 9;
+            uevent->modalias = msg;
         }
 
         /* advance to after the next \0 */
@@ -350,9 +381,10 @@ static void parse_event(const char *msg, struct uevent *uevent)
             ;
     }
 
-    log_event_print("event { '%s', '%s', '%s', '%s', %d, %d }\n",
+    log_event_print("event { '%s', '%s', '%s', '%s', %d, %d, '%s', '%s'}\n",
                     uevent->action, uevent->path, uevent->subsystem,
-                    uevent->firmware, uevent->major, uevent->minor);
+                    uevent->firmware, uevent->major, uevent->minor,
+                    uevent->country, uevent->modalias);
 }
 
 static char **get_character_device_symlinks(struct uevent *uevent)
@@ -377,6 +409,13 @@ static char **get_character_device_symlinks(struct uevent *uevent)
         goto err;
 
     if (!strncmp(parent, "/usb", 4)) {
+#ifdef USE_MOTOROLA_CODE
+        if (!strncmp(parent, "/usbhs_omap", 11)) {
+            parent = strstr(parent + 11, "/usb");
+            if (!*parent)
+                goto err;
+        }
+#endif
         /* skip root hub name and device. use device interface */
         while (*++parent && *parent != '/');
         if (*parent)
@@ -474,6 +513,9 @@ static void handle_device(const char *action, const char *devpath,
 
     if(!strcmp(action, "add")) {
         make_device(devpath, path, block, major, minor);
+#ifdef USE_MOTOROLA_CODE
+	device_changed(devpath, 1);
+#endif
         if (links) {
             for (i = 0; links[i]; i++)
                 make_link(devpath, links[i]);
@@ -481,6 +523,9 @@ static void handle_device(const char *action, const char *devpath,
     }
 
     if(!strcmp(action, "remove")) {
+#ifdef USE_MOTOROLA_CODE
+	device_changed(devpath, 0);
+#endif
         if (links) {
             for (i = 0; links[i]; i++)
                 remove_link(devpath, links[i]);
@@ -545,6 +590,21 @@ static void handle_block_device_event(struct uevent *uevent)
 
     handle_device(uevent->action, devpath, uevent->path, 1,
             uevent->major, uevent->minor, links);
+
+#ifdef USE_MOTOROLA_CODE
+    /* make Moto specific /dev/block/alias link */
+    if(!strcmp(uevent->action, "add")) {
+        if(!strncmp(uevent->subsystem, "block", 5)) {
+            char dev_alias[ALIAS_LEN]={'\0'};
+            char *basename;
+
+            basename = strrchr(devpath, '/') + 1;
+            get_partition_alias_name(basename, dev_alias);
+            if (strlen(dev_alias))
+                add_mmc_alias(basename, dev_alias);
+        }
+    }
+#endif
 }
 
 static void handle_generic_device_event(struct uevent *uevent)
@@ -786,6 +846,40 @@ root_free_out:
     free(root);
 }
 
+#ifdef USE_MOTOROLA_CODE
+static void handle_crda_event(struct uevent *uevent)
+{
+    int status;
+    int ret;
+    pid_t pid;
+    char country_env[128];
+    char *argv[] = { "/system/bin/crda", NULL };
+    char *envp[] = { country_env, NULL };
+
+    if(strcmp(uevent->subsystem, "platform"))
+        return;
+
+    if(strcmp(uevent->action, "change"))
+        return;
+
+    if(strcmp(uevent->modalias, "platform:regulatory"))
+        return;
+
+    log_event_print("executing CRDA country=%s\n", uevent->country);
+    sprintf(country_env, "COUNTRY=%s", uevent->country);
+
+    pid = fork();
+    if (!pid) {
+        if (-1 == execve(argv[0], argv, envp))
+            exit(1);
+    } else if (pid != -1) {
+        do {
+            ret = waitpid(pid, &status, 0);
+        } while (ret == -1 && errno == EINTR);
+    }
+}
+#endif
+
 static void handle_firmware_event(struct uevent *uevent)
 {
     pid_t pid;
@@ -822,6 +916,9 @@ void handle_device_fd()
 
         handle_device_event(&uevent);
         handle_firmware_event(&uevent);
+#ifdef USE_MOTOROLA_CODE
+        handle_crda_event(&uevent);
+#endif
     }
 }
 
@@ -914,3 +1011,80 @@ int get_device_fd()
 {
     return device_fd;
 }
+
+#ifdef USE_MOTOROLA_CODE
+static void add_mmc_alias(char *dev_name, char *dev_alias)
+{
+    int ret = 0;
+    struct stat buf;
+    char dev_path[PATH_LEN]={'\0'};
+    char dev_link[PATH_LEN]={'\0'};
+    unsigned uid = 0;
+    unsigned gid = 0;
+    mode_t mode = 0;
+
+    if (dev_alias[0] == '\0')
+        return;
+
+    sprintf(dev_path, "/dev/block/%s", dev_name);
+
+    ret = stat(dev_link, &buf);
+    if (!ret)
+        ERROR("The name exist, will not create mmc alias link!\n");
+
+    sprintf(dev_link, "/dev/block/%s", dev_alias);
+
+    mode = get_device_perm(dev_link, &uid, &gid);
+
+    if (!symlink(dev_path, dev_link)) {
+        if (uid != 0 || gid != 0 || mode != 0600) {
+            chown(dev_link, uid, gid);
+            chmod(dev_link, mode | S_IFBLK);
+        }
+    } else if (errno != EEXIST) {
+        ERROR("Create mmc alias link %s->%s error (%s)!\n",
+            dev_path, dev_link, strerror(errno));
+    }
+}
+
+static void get_partition_alias_name(char *devname, char *alias)
+{
+    int fd;
+    char buf[BUF_SIZE];
+    char *data_ptr;
+    char *data_end;
+    ssize_t data_size;
+
+    if (!alias)
+        return;
+
+    fd = open("/proc/partitions", O_RDONLY);
+    if (fd < 0)
+        return;
+
+    buf[sizeof(buf) - 1] = '\0';
+    data_size = read(fd, buf, sizeof(buf) - 1);
+    data_ptr = buf;
+    data_end = buf + data_size;
+    *data_end = '\0';
+    while (data_ptr < data_end) {
+        int dev_major, dev_minor;
+        unsigned long long blocks_num;
+        char dev_name[NAME_LEN]={'\0'};
+        char dev_alias[ALIAS_LEN]={'\0'};
+
+        int r = sscanf(data_ptr, "%4d  %7d %10llu %31s%*['\t']%31[^'\n']\n",
+                   &dev_major, &dev_minor, &blocks_num, dev_name, dev_alias);
+
+        if (r == 5 && !strncmp(dev_name, devname, NAME_LEN)) {
+            strncpy(alias, dev_alias, ALIAS_LEN);
+            break;
+        }
+
+        /* Advance cursor to next line */
+        while (data_ptr < data_end && *data_ptr != '\n') data_ptr++;
+        while (data_ptr < data_end && *data_ptr == '\n') data_ptr++;
+    }
+    close(fd);
+}
+#endif
