@@ -27,7 +27,7 @@ void action_for_each_trigger(const char *trigger,
                              void (*func)(struct action *act));
 int action_queue_empty(void);
 void queue_property_triggers(const char *name, const char *value);
-#ifdef USE_MOTOROLA_CODE
+#ifdef BOARD_USE_MOTOROLA_DEV_ALIAS
 void queue_device_triggers(const char *name, int is_add);
 void queue_all_device_triggers(void);
 #endif

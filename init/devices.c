@@ -43,7 +43,7 @@
 
 #include <cutils/list.h>
 #include <cutils/uevent.h>
-#ifdef USE_MOTOROLA_CODE
+#ifdef BOARD_USE_MOTOROLA_DEV_ALIAS
 #include <cutils/partition_utils.h>
 #include <sys/poll.h>
 #endif
@@ -85,7 +85,13 @@ struct uevent {
     int minor;
 };
 
-#ifdef USE_MOTOROLA_CODE
+#ifdef BOARD_USE_MOTOROLA_DEV_ALIAS
+#define MAX_MMC_PARTITIONS 32
+#define NAME_LEN 32
+#define ALIAS_LEN 32
+#define PATH_LEN 64
+#define BUF_SIZE MAX_MMC_PARTITIONS*128
+
 static void add_mmc_alias(char *dev_name, char *dev_alias);
 static void get_partition_alias_name(char *devname, char *alias);
 #endif
@@ -513,7 +519,7 @@ static void handle_device(const char *action, const char *devpath,
 
     if(!strcmp(action, "add")) {
         make_device(devpath, path, block, major, minor);
-#ifdef USE_MOTOROLA_CODE
+#ifdef BOARD_USE_MOTOROLA_DEV_ALIAS
 	device_changed(devpath, 1);
 #endif
         if (links) {
@@ -523,7 +529,7 @@ static void handle_device(const char *action, const char *devpath,
     }
 
     if(!strcmp(action, "remove")) {
-#ifdef USE_MOTOROLA_CODE
+#ifdef BOARD_USE_MOTOROLA_DEV_ALIAS
 	device_changed(devpath, 0);
 #endif
         if (links) {
@@ -591,7 +597,7 @@ static void handle_block_device_event(struct uevent *uevent)
     handle_device(uevent->action, devpath, uevent->path, 1,
             uevent->major, uevent->minor, links);
 
-#ifdef USE_MOTOROLA_CODE
+#ifdef BOARD_USE_MOTOROLA_DEV_ALIAS
     /* make Moto specific /dev/block/alias link */
     if(!strcmp(uevent->action, "add")) {
         if(!strncmp(uevent->subsystem, "block", 5)) {
@@ -1012,7 +1018,7 @@ int get_device_fd()
     return device_fd;
 }
 
-#ifdef USE_MOTOROLA_CODE
+#ifdef BOARD_USE_MOTOROLA_DEV_ALIAS
 static void add_mmc_alias(char *dev_name, char *dev_alias)
 {
     int ret = 0;

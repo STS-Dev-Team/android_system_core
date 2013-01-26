@@ -67,7 +67,7 @@ struct selabel_handle *sehandle_prop;
 #endif
 
 static int property_triggers_enabled = 0;
-#ifdef USE_MOTOROLA_CODE
+#ifdef BOARD_USE_MOTOROLA_DEV_ALIAS
 static int device_triggers_enabled = 0;
 #endif
 
@@ -567,7 +567,7 @@ void execute_one_command(void)
     INFO("command '%s' r=%d\n", cur_command->args[0], ret);
 }
 
-#ifdef USE_MOTOROLA_CODE
+#ifdef BOARD_USE_MOTOROLA_DEV_ALIAS
 void device_changed(const char *name, int is_add)
 {
     if (device_triggers_enabled) {
@@ -1033,7 +1033,7 @@ int main(int argc, char **argv)
         action_for_each_trigger("boot", action_add_queue_tail);
     }
 
-#ifdef USE_MOTOROLA_CODE
+#ifdef BOARD_USE_MOTOROLA_DEV_ALIAS
     queue_all_device_triggers();
     execute_one_command();
     device_triggers_enabled = 1;

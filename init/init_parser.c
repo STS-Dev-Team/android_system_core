@@ -570,7 +570,7 @@ void action_for_each_trigger(const char *trigger,
         }
     }
 }
-#ifdef USE_MOTOROLA_CODE
+#ifdef BOARD_USE_MOTOROLA_DEV_ALIAS
 void queue_device_triggers(const char *name, int is_add)
 {
     struct listnode *node;
