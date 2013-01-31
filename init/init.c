@@ -914,7 +914,7 @@ int main(int argc, char **argv)
      * it creates double mount points with an unknown effect
      * on the system.  This init file is for 2nd-init anyway.
      */
-#ifndef BOARD_HAS_LOCKED_BOOTLOADER
+#ifndef NO_DEVFS_SETUP
     mkdir("/dev", 0755);
     mkdir("/proc", 0755);
     mkdir("/sys", 0755);
